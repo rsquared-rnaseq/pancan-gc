@@ -1,0 +1,3 @@
+pancan_dir: "/data/Robinson-SB/pancan-gc"
+pancan_exp_dl: "http://api.gdc.cancer.gov/data/3586c0da-64d0-4b74-a449-5ff4d9136611"
+pancan_clin_dl: "https://api.gdc.cancer.gov/data/1b5f413e-a8d1-4d10-92eb-7c4ae739ed81"
