@@ -2,12 +2,9 @@ library(data.table)
 library(openxlsx)
 library(dplyr)
 
-# expressionFn <- snakemake@input[["exp"]]
-# clinFn <- snakemake@input[["clin"]]
-# outDir <- snakemake@output[["out_dir"]]
-expressionFn <- "/data/Robinson-SB/pancan-gc/PanCan_exp.tsv"
-clinFn <- "/data/Robinson-SB/pancan-gc/PanCan_clin.xlsx"
-outDir <- "/data/Robinson-SB/pancan-gc/exps"
+expressionFn <- snakemake@input[["exp"]]
+clinFn <- snakemake@input[["clin"]]
+outDir <- snakemake@params[["out_dir"]]
 
 message("Reading in expression data")
 exp <- fread(expressionFn)
@@ -24,25 +21,3 @@ for (ctype in cancerTypes) {
   message(paste0("Writing TSV for cancer type ", ctype))
   fwrite(expType, paste0(outDir, "/", ctype, "_exp.tsv"), sep = "\t")
 }
-
-# select_cancers = unique(typePatients$bcr_patient_barcode)
-# colnames(exp)
-# 
-# select_cancers = c(select_cancers, "gene_id")
-# 
-# exp_subset = exp[,.SD,.SDcols=c(select_cancers)]
-# 
-# select_cancers[1:10]
-# colnames(exp)[1:10]
-# 
-# bob = intersect(colnames(exp), select_cancers)
-# exp_subset = exp[,.SD,.SDcols=bob]
-# 
-# class(typePatients)
-# whale = as.data.table(typePatients)
-# type_subset = whale[bcr_patient_barcode %in% colnames(exp),]
-# 
-# type_subset = unique(type_subset)
-# length(unique(type_subset$bcr_patient_barcode))
-# 
-# turtle = unique(select_cancers)
