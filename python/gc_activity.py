@@ -4,7 +4,10 @@ import progressbar as bar
 import os
 from scipy.stats import spearmanr
 
+# TODO (gc_activity sig): Matt's email mentions CYP21A1, but this gene only exists in mice. In humans the same gene
+# TODO: (21-hydroxylase) is encoded by the CYP21A2 gene. Which one should I use?
 signatures = {
+    # "gc_activity": ["STAR", "CYP11A1", "CYP11B1", "HSD11B1", "HSD11B2", "CYP21A2"],
     "gc_activity": ["STAR", "CYP11A1", "CYP11B1", "HSD11B1", "HSD11B2", "CYP21A1", "HSD11B1"],
     "ctl_activity": ["CD8A", "CD8B", "GZMA", "GZMB", "PRF1"]
 }
@@ -35,6 +38,16 @@ with bar.ProgressBar(max_value=len(exp.columns[1:])) as progress:
         # For each sample, compute all the signatures by mean expression value
         for sig_name, signature in signatures.items():
             activity.loc[sig_name][sample] = exp.loc[exp["gene_id"].isin(signature), sample].mean()
+            # samp_sig = 0
+            # for sig_gene in signature:
+            #     sig_gene_exp = exp.loc[exp["gene_id"] == sig_gene][sample]
+            #     if len(sig_gene_exp) == 1:
+            #         samp_sig += sig_gene_exp.item()
+            #     else:
+            #         print("disparity gene=%s, len=%d" % (sig_gene, len(sig_gene_exp)))
+            #         print(sig_gene_exp)
+            # samp_sig /= len(signature)
+            # activity.loc[sig_name][sample] = samp_sig
 
         i += 1
         progress.update(i)
