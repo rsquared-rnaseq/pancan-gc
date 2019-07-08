@@ -15,10 +15,10 @@ args = parser.parse_args()
 with open(args.sig_file, 'r') as sigfile:
     signatures = yaml.safe_load(sigfile)
 
-cancer_types = ["SKCM"]
-# cancer_types = ["BRCA", "GBM", "OV", "LUAD", "UCEC", "KIRC", "HNSC", "LGG", "THCA", "LUSC", "PRAD", "SKCM", "COAD",
-#                 "STAD", "BLCA", "LIHC", "CESC", "KIRP", "SARC", "LAML", "ESCA", "PAAD", "PCPG", "READ", "TGCT", "THYM",
-#                 "KICH", "ACC", "MESO", "UVM", "DLBC", "UCS", "CHOL"]
+# cancer_types = ["SKCM"]
+cancer_types = ["BRCA", "GBM", "OV", "LUAD", "UCEC", "KIRC", "HNSC", "LGG", "THCA", "LUSC", "PRAD", "SKCM", "COAD",
+                "STAD", "BLCA", "LIHC", "CESC", "KIRP", "SARC", "LAML", "ESCA", "PAAD", "PCPG", "READ", "TGCT", "THYM",
+                "KICH", "ACC", "MESO", "UVM", "DLBC", "UCS", "CHOL"]
 basedir = "/data/Robinson-SB/pancan-gc"
 
 # print("Reading clinical data")
@@ -69,4 +69,9 @@ for ctype, exp in exps.items():
     activity = activity.set_index("array")
 
     corr_matrix = activity.corr(method="spearman")
-    corr_matrix.to_csv(os.path.join(basedir, "%s/%s_corr.tsv" % (args.out_dir, ctype)), sep="\t")
+
+    corr_outdir = os.path.join(basedir, args.out_dir)
+    if not os.path.exists(corr_outdir):
+        os.mkdir(corr_outdir)
+
+    corr_matrix.to_csv(os.path.join(corr_outdir, "%s_corr.tsv" % ctype), sep="\t")
