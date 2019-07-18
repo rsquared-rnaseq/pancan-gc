@@ -106,68 +106,31 @@ for ctype, exp in exps.items():
     # Build KM plot of this cancer type. Compare high-CTL patient survival against low-CTL
     clin_exprs = clin.merge(activity, left_on="bcr_patient_barcode", right_index=True).set_index("bcr_patient_barcode")
     clin_exprs = clin_exprs.merge(exp.set_index("gene_id").transpose(), left_index=True, right_index=True)
+
     high_ctl_activity_mask = (clin_exprs.ctl_activity > activity_pancan[ctype].ctl_activity)
+    high_test_sig_mask = (sp.stats.zscore(clin_exprs.test_sig) >= 1)
 
-    num_genes = len(mean_gene_exprs[ctype].index)
-    sig_genes = []
-    with bar.ProgressBar(max_value=num_genes, redirect_stdout=True) as gene_progress:
-        i = 0
-        for gene in mean_gene_exprs[ctype].index:
-            gene = "TGFB1"
-            i += 1
-            gene_progress.update(i)
+    control_low_ctl = clin_exprs.loc[~high_ctl_activity_mask, :]
+    high_test_high_ctl = clin_exprs.loc[high_test_sig_mask & high_ctl_activity_mask, :]
+    low_test_high_ctl = clin_exprs.loc[~high_test_sig_mask & high_ctl_activity_mask, :]
 
-            # high_gene_mask = (clin_exprs[gene] > mean_gene_exprs[ctype]["mean_exprs"][gene])
-            high_gene_mask = (sp.stats.zscore(clin_exprs[gene]) >= 1)
-            high_ctl_high_gene = clin_exprs.loc[high_ctl_activity_mask & high_gene_mask]
-            high_ctl_low_gene = clin_exprs.loc[high_ctl_activity_mask & ~]
+    ax = plt.subplot(111)
 
-            baseline_fit = kmf.fit(low_ctl_control.last_contact_days_to, event_observed=low_ctl_control.vital_status,
-                                   label="Control")
+    print(kmf.fit(high_test_high_ctl.last_contact_days_to, event_observed=high_test_high_ctl.vital_status, label="High test sig"))
+    ax = kmf.plot(ax=ax)
+    print(kmf.fit(control_low_ctl.last_contact_days_to, event_observed=control_low_ctl.vital_status, label="Control (low CTL)"))
+    ax = kmf.plot(ax=ax)
+    # plt.title("High GC response, low vs high CTL survival")
+    plt.show()
 
-            if len(high_ctl_high_gene) < 10:
-                continue
+    ax = plt.subplot(111)
+    print(kmf.fit(low_test_high_ctl.last_contact_days_to, event_observed=low_test_high_ctl.vital_status, label="Low test sig"))
+    ax = kmf.plot(ax=ax)
+    print(kmf.fit(control_low_ctl.last_contact_days_to, event_observed=control_low_ctl.vital_status, label="Control (low CTL)"))
+    ax = kmf.plot(ax=ax)
+    # plt.title("GC")
+    plt.show()
 
-            test_gene_fit = kmf.fit(high_ctl_high_gene.last_contact_days_to, event_observed=high_ctl_high_gene.vital_status,
-                                    label="High CTL & %s" % gene)
-            lrt = logrank_test(low_ctl_control.last_contact_days_to, high_ctl_high_gene.last_contact_days_to,
-                               event_observed_A=low_ctl_control.vital_status,
-                               event_observed_B=high_ctl_high_gene.vital_status)
-
-            # Record genes that have a statistically significant difference vs baseline
-            # TODO: FDR correct the p vals
-            if lrt.p_value < 0.05:
-                print("[%s: (lrt=%.2f, p=%.2f)]" % (gene, lrt.test_statistic, lrt.p_value))
-                sig_genes.append(gene)
-
-
-
-    # high_test_sig_mask = (sp.stats.zscore(clin_exprs.test_sig) >= 1)
-    #
-    # control_low_ctl = clin_exprs.loc[~high_ctl_activity_mask, :]
-    # high_test_high_ctl = clin_exprs.loc[high_test_sig_mask & high_ctl_activity_mask, :]
-    # low_test_high_ctl = clin_exprs.loc[~high_test_sig_mask & high_ctl_activity_mask, :]
-    #
-    # ax = plt.subplot(111)
-    #
-    # print(kmf.fit(high_test_high_ctl.last_contact_days_to, event_observed=high_test_high_ctl.vital_status, label="High test sig"))
-    # ax = kmf.plot(ax=ax)
-    # print(kmf.fit(control_low_ctl.last_contact_days_to, event_observed=control_low_ctl.vital_status, label="Control (low CTL)"))
-    # ax = kmf.plot(ax=ax)
-    # # plt.title("High GC response, low vs high CTL survival")
-    # plt.show()
-    #
-    # ax = plt.subplot(111)
-    # print(kmf.fit(low_test_high_ctl.last_contact_days_to, event_observed=low_test_high_ctl.vital_status, label="Low test sig"))
-    # ax = kmf.plot(ax=ax)
-    # print(kmf.fit(control_low_ctl.last_contact_days_to, event_observed=control_low_ctl.vital_status, label="Control (low CTL)"))
-    # ax = kmf.plot(ax=ax)
-    # # plt.title("GC")
-    # plt.show()
-    #
-    # lrt = logrank_test(control_high_ctl.last_contact_days_to, low_gc_prod_high_ctl_act.last_contact_days_to,
-    #                    event_observed_A=control_high_ctl.vital_status,
-    #                    event_observed_B=low_gc_prod_high_ctl_act.vital_status)
 
 activity_pancan = activity_pancan.transpose()
 activity_pancan = activity_pancan.astype(float)
