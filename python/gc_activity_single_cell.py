@@ -3,30 +3,17 @@ import os
 import matplotlib.pyplot as plt
 
 plt.rcParams["figure.figsize"] = (8, 3)
-
-# lol rewrite this gross code
-
-# print("Reading in data... ", end="")
 base_dir = "/data/Robinson-SB/pancan-gc/single_cell_datasets/GSE115978"
-# tpms = {
-#     "cancer": pd.read_csv(os.path.join(base_dir, "Mel_cancer_tpm_merged.tsv"), delim_whitespace=True),
-#     "noncancer": pd.read_csv(os.path.join(base_dir, "Mel_noncancer_tpm_merged.tsv"), delim_whitespace=True)
-# }
-# print("done")
 
 # Start with glucocorticoid signatures
 signatures = {
     "gc_production": ["STAR", "CYP11A1", "CYP11B1", "HSD11B1", "HSD11B2", "CYP21A2", "H6PD"],
     "gc_response": ["CD72", "DUSP1", "ETS1", "FKBP5", "FOS", "IL1RL1", "IRAK3", "IRF1", "MAP2K1", "MAP3K8", "NFKBIA",
                     "PER1", "PIK3CA", "PIK3R1", "SGK1", "THBD", "TLR2", "TNFAIP3", "TSC22D3"],
+    "cct3": ["CCT3"]
 }
-
 signature_out = pd.DataFrame(columns=["cancer", "noncancer"])
-# cancer_tpm = tpms["cancer"].set_index("Gene").transpose()
-# cancer_tpm.columns = [col + "_C" for col in cancer_tpm.columns]
-#
-# noncancer_tpm = tpms["noncancer"].set_index("Gene").transpose()
-# noncancer_tpm.columns = [col + "_NC" for col in noncancer_tpm.columns]
+
 print("Reading in data... ", end="")
 metadata = pd.read_csv(os.path.join(base_dir, "Mel_metadata_merged.tsv"), delim_whitespace=True)
 cancer_tpm = pd.read_pickle(os.path.join(base_dir, "Mel_cancer_tpm_merged.pkl"))
@@ -36,7 +23,7 @@ print("done")
 for sig_name in signatures.keys():
     signature_out = signature_out.append(pd.Series(name=sig_name))
 
-for gc_prod_gene in signatures["gc_production"]:
+for gc_prod_gene in signatures["cct3"]:
     plt.plot()
     # Different cell types in the noncancer sample
     types = ['B.cell', 'CAF', 'Endo.', 'Macrophage', 'NK', 'T.CD4', 'T.CD8', 'T.cell']

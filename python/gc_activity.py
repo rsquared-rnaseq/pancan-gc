@@ -2,20 +2,24 @@ import pandas as pd
 import numpy as np
 import progressbar as bar
 import os
-import scipy as sp
 import yaml
 import argparse
-import matplotlib.pyplot as plt
 import lifelines as lf
-from lifelines.statistics import logrank_test
-from statsmodels.stats.multitest import multipletests
-from scipy.stats import spearmanr
+import scipy.stats as ss
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--sig", dest="sig_file")
 parser.add_argument("--outdir", dest="out_dir")
 
 args = parser.parse_args()
+
+
+def get_pvals(r, n):
+    # uses t-test to get p-values
+    t = r * np.sqrt((n - 2) / (1 - r * r))
+    return ss.t.cdf(t, n - 2)
+
 
 with open(args.sig_file, 'r') as sigfile:
     signatures = yaml.safe_load(sigfile)
@@ -92,6 +96,7 @@ for ctype, exp in exps.items():
     activity = activity.set_index("array")
 
     corr_matrix = activity.corr(method="spearman")
+    pval_matrix = get_pvals(corr_matrix, len(corr_matrix))
 
     corr_outdir = os.path.join(basedir, args.out_dir)
     if not os.path.exists(corr_outdir):
@@ -107,34 +112,69 @@ for ctype, exp in exps.items():
     clin_exprs = clin.merge(activity, left_on="bcr_patient_barcode", right_index=True).set_index("bcr_patient_barcode")
     clin_exprs = clin_exprs.merge(exp.set_index("gene_id").transpose(), left_index=True, right_index=True)
 
+    high_cct3_mask = (clin_exprs.cct3 > activity_pancan[ctype].cct3)
     high_ctl_activity_mask = (clin_exprs.ctl_activity > activity_pancan[ctype].ctl_activity)
-    high_test_sig_mask = (sp.stats.zscore(clin_exprs.test_sig) >= 1)
 
-    control_low_ctl = clin_exprs.loc[~high_ctl_activity_mask, :]
-    high_test_high_ctl = clin_exprs.loc[high_test_sig_mask & high_ctl_activity_mask, :]
-    low_test_high_ctl = clin_exprs.loc[~high_test_sig_mask & high_ctl_activity_mask, :]
+    high_cct3_high_ctl = clin_exprs.loc[high_cct3_mask & high_ctl_activity_mask, :]
+    low_cct3_high_ctl = clin_exprs.loc[~high_cct3_mask & high_ctl_activity_mask, :]
+    high_cct3_low_ctl = clin_exprs.loc[high_cct3_mask & ~high_ctl_activity_mask, :]
+    low_cct3_low_ctl = clin_exprs.loc[~high_cct3_mask & ~high_ctl_activity_mask, :]
+    high_cct3 = clin_exprs.loc[high_cct3_mask]
+    low_cct3 = clin_exprs.loc[~high_cct3_mask]
 
     ax = plt.subplot(111)
+    kmf.fit(high_cct3_high_ctl.last_contact_days_to, event_observed=high_cct3_high_ctl.vital_status, label="High CCT3")
+    ax = kmf.plot(ax=ax)
+    kmf.fit(low_cct3_high_ctl.last_contact_days_to, event_observed=low_cct3_high_ctl.vital_status, label="Low CCT3")
+    ax = kmf.plot(ax=ax)
 
-    print(kmf.fit(high_test_high_ctl.last_contact_days_to, event_observed=high_test_high_ctl.vital_status, label="High test sig"))
-    ax = kmf.plot(ax=ax)
-    print(kmf.fit(control_low_ctl.last_contact_days_to, event_observed=control_low_ctl.vital_status, label="Control (low CTL)"))
-    ax = kmf.plot(ax=ax)
-    # plt.title("High GC response, low vs high CTL survival")
+    plt.title("High vs low CCT3 with high CTL")
     plt.show()
 
     ax = plt.subplot(111)
-    print(kmf.fit(low_test_high_ctl.last_contact_days_to, event_observed=low_test_high_ctl.vital_status, label="Low test sig"))
+    kmf.fit(high_cct3_low_ctl.last_contact_days_to, event_observed=high_cct3_low_ctl.vital_status, label="High CCT3")
     ax = kmf.plot(ax=ax)
-    print(kmf.fit(control_low_ctl.last_contact_days_to, event_observed=control_low_ctl.vital_status, label="Control (low CTL)"))
+    kmf.fit(low_cct3_low_ctl.last_contact_days_to, event_observed=low_cct3_low_ctl.vital_status, label="Low CCT3")
     ax = kmf.plot(ax=ax)
-    # plt.title("GC")
+
+    plt.title("High vs low CCT3 with low CTL")
     plt.show()
+
+    ax = plt.subplot(111)
+    kmf.fit(high_cct3.last_contact_days_to, event_observed=high_cct3.vital_status, label="High CCT3")
+    ax = kmf.plot(ax=ax)
+    kmf.fit(low_cct3.last_contact_days_to, event_observed=low_cct3.vital_status, label="Low CCT3")
+    ax = kmf.plot(ax=ax)
+
+    plt.title("High vs low CCT3")
+    plt.show()
+    #
+    # high_ctl_activity_mask = (clin_exprs.ctl_activity > activity_pancan[ctype].ctl_activity)
+    # high_test_sig_mask = (sp.stats.zscore(clin_exprs.test_sig) >= 1)
+    #
+    # control_low_ctl = clin_exprs.loc[~high_ctl_activity_mask, :]
+    # high_test_high_ctl = clin_exprs.loc[high_test_sig_mask & high_ctl_activity_mask, :]
+    # low_test_high_ctl = clin_exprs.loc[~high_test_sig_mask & high_ctl_activity_mask, :]
+    #
+    # ax = plt.subplot(111)
+    #
+    # print(kmf.fit(high_test_high_ctl.last_contact_days_to, event_observed=high_test_high_ctl.vital_status, label="High test sig"))
+    # ax = kmf.plot(ax=ax)
+    # print(kmf.fit(control_low_ctl.last_contact_days_to, event_observed=control_low_ctl.vital_status, label="Control (low CTL)"))
+    # ax = kmf.plot(ax=ax)
+    # # plt.title("High GC response, low vs high CTL survival")
+    # plt.show()
+    #
+    # ax = plt.subplot(111)
+    # print(kmf.fit(low_test_high_ctl.last_contact_days_to, event_observed=low_test_high_ctl.vital_status, label="Low test sig"))
+    # ax = kmf.plot(ax=ax)
+    # print(kmf.fit(control_low_ctl.last_contact_days_to, event_observed=control_low_ctl.vital_status, label="Control (low CTL)"))
+    # ax = kmf.plot(ax=ax)
+    # # plt.title("GC")
+    # plt.show()
 
 
 activity_pancan = activity_pancan.transpose()
 activity_pancan = activity_pancan.astype(float)
 pancan_corrs = activity_pancan.corr(method="spearman")
-pancan_corrs_pvals = pd.DataFrame(
-    [[spearmanr(activity_pancan[rowsig], activity_pancan[colsig]).pvalue for rowsig in activity_pancan.columns] for
-     colsig in activity_pancan.columns])
+

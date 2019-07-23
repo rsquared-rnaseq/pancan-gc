@@ -1,10 +1,7 @@
 CANCER_TYPES: ["SKCM"]
-# CANCER_TYPES: ["BRCA", "GBM", "OV", "LUAD", "UCEC", "KIRC", "HNSC", "LGG", "THCA", "LUSC", "PRAD", "SKCM", "COAD",
-#                 "STAD", "BLCA", "LIHC", "CESC", "KIRP", "SARC", "LAML", "ESCA", "PAAD", "PCPG", "READ", "TGCT", "THYM",
-#                 "KICH", "ACC", "MESO", "UVM", "DLBC", "UCS", "CHOL"]
 
 gc_production: [
-  "STAR", "CYP11A1", "CYP11B1", "HSD11B1", "HSD11B2", "CYP21A1", "HSD11B1"
+  "STAR", "CYP11A1", "CYP11B1", "HSD11B1", "HSD11B2", "CYP21A2", "H6PD"
 ]
 
 gc_response: [
@@ -31,6 +28,6 @@ ctl_exhaustion: [
   "GCIN", "TRIM25", "WBSCR5", "MOX2", "DOCK7", "PAWR", "CHL1"
 ]
 
-cdk4-6: [
-  "CDK4", "CDK6"
+cct3: [
+  "CCT3"
 ]

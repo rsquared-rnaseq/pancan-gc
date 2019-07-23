@@ -1,4 +1,4 @@
-# utils.py: contains simple python snippets I've used by don't warrant a whole separate file
+# utils.py: contains simple python snippets I've used but don't warrant a whole separate file
 
 import os
 import glob
