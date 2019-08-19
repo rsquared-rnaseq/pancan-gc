@@ -32,6 +32,10 @@ cct3: [
   "CCT3"
 ]
 
+cd47: [
+  "CD47"
+]
+
 # The following two signatures are from get_zero_genes.py
 mel_only: [
   "MIR489", "LINC00577", "MIR3150A", "MIR2276", "MIR4701", "PAGE3", "KRTAP13-4", "MIR4649", "DUSP21",

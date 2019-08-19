@@ -10,7 +10,8 @@ signatures = {
     "gc_production": ["STAR", "CYP11A1", "CYP11B1", "HSD11B1", "HSD11B2", "CYP21A2", "H6PD"],
     "gc_response": ["CD72", "DUSP1", "ETS1", "FKBP5", "FOS", "IL1RL1", "IRAK3", "IRF1", "MAP2K1", "MAP3K8", "NFKBIA",
                     "PER1", "PIK3CA", "PIK3R1", "SGK1", "THBD", "TLR2", "TNFAIP3", "TSC22D3"],
-    "cct3": ["CCT3"]
+    "cct3": ["CCT3"],
+    "cd47": ["CD47"]
 }
 signature_out = pd.DataFrame(columns=["cancer", "noncancer"])
 
@@ -23,7 +24,7 @@ print("done")
 for sig_name in signatures.keys():
     signature_out = signature_out.append(pd.Series(name=sig_name))
 
-for gc_prod_gene in signatures["cct3"]:
+for gc_prod_gene in signatures["gc_production"]:
     plt.plot()
     # Different cell types in the noncancer sample
     types = ['B.cell', 'CAF', 'Endo.', 'Macrophage', 'NK', 'T.CD4', 'T.CD8', 'T.cell']

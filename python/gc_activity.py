@@ -3,16 +3,13 @@ import numpy as np
 import progressbar as bar
 import os
 import yaml
-import argparse
 import lifelines as lf
+from lifelines.statistics import logrank_test
 import scipy.stats as ss
 import matplotlib.pyplot as plt
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--sig", dest="sig_file")
-parser.add_argument("--outdir", dest="out_dir")
-
-args = parser.parse_args()
+sig_file = "../signatures/tumor_purity_analysis.yml"
+out_dir = "corrs_liver"
 
 
 def get_pvals(r, n):
@@ -21,7 +18,7 @@ def get_pvals(r, n):
     return ss.t.cdf(t, n - 2)
 
 
-with open(args.sig_file, 'r') as sigfile:
+with open(sig_file, 'r') as sigfile:
     signatures = yaml.safe_load(sigfile)
 
 if "CANCER_TYPES" not in signatures:
@@ -31,7 +28,7 @@ cancer_types = signatures.pop("CANCER_TYPES")
 basedir = "/data/Robinson-SB/pancan-gc"
 
 print("Reading clinical data")
-clin = pd.read_excel(os.path.join(basedir, "PanCan_clin.xlsx"))
+clin = pd.read_pickle(os.path.join(basedir, "PanCan_clin.pkl"))
 
 # Need to merge last_contact_days_to and death_days_to column
 clin.last_contact_days_to = clin.last_contact_days_to.fillna(clin.death_days_to)
@@ -98,7 +95,7 @@ for ctype, exp in exps.items():
     corr_matrix = activity.corr(method="spearman")
     pval_matrix = get_pvals(corr_matrix, len(corr_matrix))
 
-    corr_outdir = os.path.join(basedir, args.out_dir)
+    corr_outdir = os.path.join(basedir, out_dir)
     if not os.path.exists(corr_outdir):
         os.mkdir(corr_outdir)
 
@@ -112,42 +109,25 @@ for ctype, exp in exps.items():
     clin_exprs = clin.merge(activity, left_on="bcr_patient_barcode", right_index=True).set_index("bcr_patient_barcode")
     clin_exprs = clin_exprs.merge(exp.set_index("gene_id").transpose(), left_index=True, right_index=True)
 
-    high_cct3_mask = (clin_exprs.cct3 > activity_pancan[ctype].cct3)
-    high_ctl_activity_mask = (clin_exprs.ctl_activity > activity_pancan[ctype].ctl_activity)
+    # high_cct3_mask = (clin_exprs.cct3 > activity_pancan[ctype].cct3)
+    top_quartile_cct3 = (clin_exprs.cct3 > np.percentile(clin_exprs.cct3, q=75))
+    bottom_quartile_cct3 = (clin_exprs.cct3 < np.percentile(clin_exprs.cct3, q=25))
 
-    high_cct3_high_ctl = clin_exprs.loc[high_cct3_mask & high_ctl_activity_mask, :]
-    low_cct3_high_ctl = clin_exprs.loc[~high_cct3_mask & high_ctl_activity_mask, :]
-    high_cct3_low_ctl = clin_exprs.loc[high_cct3_mask & ~high_ctl_activity_mask, :]
-    low_cct3_low_ctl = clin_exprs.loc[~high_cct3_mask & ~high_ctl_activity_mask, :]
-    high_cct3 = clin_exprs.loc[high_cct3_mask]
-    low_cct3 = clin_exprs.loc[~high_cct3_mask]
+    high_cct3 = clin_exprs.loc[top_quartile_cct3]
+    low_cct3 = clin_exprs.loc[bottom_quartile_cct3]
 
     ax = plt.subplot(111)
-    kmf.fit(high_cct3_high_ctl.last_contact_days_to, event_observed=high_cct3_high_ctl.vital_status, label="High CCT3")
+    km5 = kmf.fit(high_cct3.last_contact_days_to, event_observed=high_cct3.vital_status, label="Top quartile CCT3")
     ax = kmf.plot(ax=ax)
-    kmf.fit(low_cct3_high_ctl.last_contact_days_to, event_observed=low_cct3_high_ctl.vital_status, label="Low CCT3")
+    km6 = kmf.fit(low_cct3.last_contact_days_to, event_observed=low_cct3.vital_status, label="Bottom quartile CCT3")
     ax = kmf.plot(ax=ax)
 
-    plt.title("High vs low CCT3 with high CTL")
+    plt.title("Top vs bottom quartile CCT3 expression (%s)" % ctype)
     plt.show()
 
-    ax = plt.subplot(111)
-    kmf.fit(high_cct3_low_ctl.last_contact_days_to, event_observed=high_cct3_low_ctl.vital_status, label="High CCT3")
-    ax = kmf.plot(ax=ax)
-    kmf.fit(low_cct3_low_ctl.last_contact_days_to, event_observed=low_cct3_low_ctl.vital_status, label="Low CCT3")
-    ax = kmf.plot(ax=ax)
-
-    plt.title("High vs low CCT3 with low CTL")
-    plt.show()
-
-    ax = plt.subplot(111)
-    kmf.fit(high_cct3.last_contact_days_to, event_observed=high_cct3.vital_status, label="High CCT3")
-    ax = kmf.plot(ax=ax)
-    kmf.fit(low_cct3.last_contact_days_to, event_observed=low_cct3.vital_status, label="Low CCT3")
-    ax = kmf.plot(ax=ax)
-
-    plt.title("High vs low CCT3")
-    plt.show()
+    # Calculate statistical significance
+    lrt = logrank_test(high_cct3.last_contact_days_to, low_cct3.last_contact_days_to,
+                       event_observed_A=high_cct3.vital_status, event_observed_B=low_cct3.vital_status)
     #
     # high_ctl_activity_mask = (clin_exprs.ctl_activity > activity_pancan[ctype].ctl_activity)
     # high_test_sig_mask = (sp.stats.zscore(clin_exprs.test_sig) >= 1)
@@ -173,8 +153,6 @@ for ctype, exp in exps.items():
     # # plt.title("GC")
     # plt.show()
 
-
 activity_pancan = activity_pancan.transpose()
 activity_pancan = activity_pancan.astype(float)
 pancan_corrs = activity_pancan.corr(method="spearman")
-

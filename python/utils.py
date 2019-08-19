@@ -45,6 +45,3 @@ print("Writing merged data")
 # cancer_merged.to_csv(cancer_outf, sep='\t', index=False)
 # noncancer_merged.to_csv(noncancer_outf, sep='\t', index=False)
 # metadata_merged.to_csv(metadata_outf, sep='\t', index=False)
-
-# TODO: Don't write these out to CSVs. Make an AnnData structure out of them and save it with AnnData's write() function
-# TODO: This will significantly improve run times in my single cell script
